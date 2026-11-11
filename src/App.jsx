@@ -1,37 +1,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Scene3D from './Scene3D';
 
 const initialBlocks = [
   { id: 'b1', title: 'On Start', category: 'Events', color: '#7c3aed' },
   { id: 'b2', title: 'Move Forward', category: 'Motion', color: '#2563eb' },
   { id: 'b3', title: 'Play Sound', category: 'Audio', color: '#f59e0b' },
   { id: 'b4', title: 'If Touch', category: 'Logic', color: '#10b981' },
+  { id: 'b5', title: 'Set Sprite', category: 'Graphics', color: '#ec4899' },
 ];
 
 const initialSprites = [
-  { id: 's1', name: 'Hero', x: 160, y: 180, size: 74, color: '#a78bfa', label: 'H' },
-  { id: 's2', name: 'Coin', x: 330, y: 120, size: 42, color: '#fbbf24', label: 'C' },
-  { id: 's3', name: 'Platform', x: 240, y: 300, size: 110, color: '#34d399', label: 'P' },
+  { id: 's1', name: 'Hero', x: 170, y: 215, size: 76, color: '#8b5cf6', label: 'H' },
+  { id: 's2', name: 'Coin', x: 350, y: 140, size: 42, color: '#fbbf24', label: 'C' },
+  { id: 's3', name: 'Platform', x: 255, y: 300, size: 112, color: '#34d399', label: 'P' },
 ];
 
-const defaultScript = `// Infinite Studio Pro runtime example
+const defaultScript = `// Advanced runtime example
 const hero = sprite('Hero');
 const coin = sprite('Coin');
 
-hero.move(10, 0);
+hero.move(12, 0);
 if (hero.touches(coin)) {
   coin.hide();
   playSound('coin');
+  setSceneAmbient('dreamy');
 }
 `;
 
-const defaultProject = {
-  name: 'Infinite Dream',
-  width: 960,
-  height: 560,
-};
-
 function App() {
-  const [projectName, setProjectName] = useState(defaultProject.name);
+  const [projectName, setProjectName] = useState('Infinite Dream');
   const [blocks, setBlocks] = useState(initialBlocks);
   const [sprites, setSprites] = useState(initialSprites);
   const [selectedSpriteId, setSelectedSpriteId] = useState('s1');
@@ -39,31 +36,31 @@ function App() {
   const [is3D, setIs3D] = useState(false);
   const [ambienceOn, setAmbienceOn] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [status, setStatus] = useState('Ready to build');
+  const [status, setStatus] = useState('Advanced engine ready');
   const stageRef = useRef(null);
   const audioCtxRef = useRef(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('infinite-studio-state');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.projectName) setProjectName(parsed.projectName);
-        if (parsed.sprites) setSprites(parsed.sprites);
-        if (parsed.jsCode) setJsCode(parsed.jsCode);
-        if (parsed.blocks) setBlocks(parsed.blocks);
-      } catch (error) {
-        console.warn('Could not restore saved project', error);
-      }
+    const saved = localStorage.getItem('infinite-studio-advanced');
+    if (!saved) return;
+
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.projectName) setProjectName(parsed.projectName);
+      if (parsed.blocks) setBlocks(parsed.blocks);
+      if (parsed.sprites) setSprites(parsed.sprites);
+      if (parsed.jsCode) setJsCode(parsed.jsCode);
+    } catch (error) {
+      console.warn('Failed to restore project state', error);
     }
   }, []);
 
   useEffect(() => {
     localStorage.setItem(
-      'infinite-studio-state',
-      JSON.stringify({ projectName, sprites, jsCode, blocks })
+      'infinite-studio-advanced',
+      JSON.stringify({ projectName, blocks, sprites, jsCode })
     );
-  }, [projectName, sprites, jsCode, blocks]);
+  }, [projectName, blocks, sprites, jsCode]);
 
   const selectedSprite = useMemo(
     () => sprites.find((sprite) => sprite.id === selectedSpriteId) ?? sprites[0],
@@ -71,7 +68,7 @@ function App() {
   );
 
   const addBlock = (category) => {
-    const colorMap = {
+    const palette = {
       Events: '#7c3aed',
       Motion: '#2563eb',
       Audio: '#f59e0b',
@@ -80,30 +77,30 @@ function App() {
     };
 
     const newBlock = {
-      id: `b-${Date.now()}`,
+      id: `block-${Date.now()}-${Math.random().toString(16).slice(2)}`,
       title: `${category} Block`,
       category,
-      color: colorMap[category] ?? '#38bdf8',
+      color: palette[category] ?? '#38bdf8',
     };
 
     setBlocks((current) => [...current, newBlock]);
-    setStatus(`Added a ${category.toLowerCase()} block`);
+    setStatus(`Added ${category.toLowerCase()} block`);
   };
 
   const addSprite = () => {
     const newSprite = {
-      id: `s-${Date.now()}`,
+      id: `sprite-${Date.now()}`,
       name: `Sprite ${sprites.length + 1}`,
-      x: 100 + sprites.length * 40,
-      y: 120 + sprites.length * 30,
-      size: 52,
-      color: ['#60a5fa', '#f9a8d4', '#fcd34d', '#86efac'][sprites.length % 4],
+      x: 120 + (sprites.length % 6) * 50,
+      y: 110 + (sprites.length % 4) * 40,
+      size: 58,
+      color: ['#60a5fa', '#f9a8d4', '#fcd34d', '#86efac', '#fca5a5'][sprites.length % 5],
       label: String.fromCharCode(65 + (sprites.length % 26)),
     };
 
     setSprites((current) => [...current, newSprite]);
     setSelectedSpriteId(newSprite.id);
-    setStatus('Added a new sprite');
+    setStatus('Sprite added to scene');
   };
 
   const onSpriteUpload = (event) => {
@@ -113,15 +110,16 @@ function App() {
     const reader = new FileReader();
     reader.onload = () => {
       const newSprite = {
-        id: `s-${Date.now()}`,
+        id: `sprite-${Date.now()}`,
         name: file.name.replace(/\.[^.]+$/, '') || 'Custom Sprite',
-        x: 180,
-        y: 160,
+        x: 150,
+        y: 150,
         size: 72,
         color: '#f472b6',
         label: 'C',
         image: reader.result,
       };
+
       setSprites((current) => [...current, newSprite]);
       setSelectedSpriteId(newSprite.id);
       setStatus(`Imported ${file.name}`);
@@ -131,6 +129,7 @@ function App() {
 
   const updateSelectedSprite = (changes) => {
     if (!selectedSprite) return;
+
     setSprites((current) =>
       current.map((sprite) =>
         sprite.id === selectedSprite.id ? { ...sprite, ...changes } : sprite
@@ -143,32 +142,34 @@ function App() {
       const ctx = audioCtxRef.current;
       if (ctx.state === 'suspended') await ctx.resume();
       setAmbienceOn(true);
-      setStatus('Ambience started');
+      setStatus('Ambience online');
       return;
     }
 
     const AudioCtor = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtor) {
-      setStatus('Audio API unavailable in this browser');
+      setStatus('Audio not supported');
       return;
     }
 
     const ctx = new AudioCtor();
     const master = ctx.createGain();
-    master.gain.value = 0.04;
+    master.gain.value = 0.05;
     master.connect(ctx.destination);
 
     const oscA = ctx.createOscillator();
     oscA.type = 'sine';
     oscA.frequency.value = 174;
+
     const oscB = ctx.createOscillator();
     oscB.type = 'triangle';
     oscB.frequency.value = 220;
 
     const gainA = ctx.createGain();
-    gainA.gain.value = 0.03;
+    gainA.gain.value = 0.026;
+
     const gainB = ctx.createGain();
-    gainB.gain.value = 0.025;
+    gainB.gain.value = 0.022;
 
     oscA.connect(gainA);
     gainA.connect(master);
@@ -181,16 +182,14 @@ function App() {
     audioCtxRef.current = ctx;
     window.__ambience = { oscA, oscB, gainA, gainB, master };
     setAmbienceOn(true);
-    setStatus('Ambience started');
+    setStatus('Ambience online');
   };
 
   const stopAmbience = () => {
     if (window.__ambience) {
-      const { oscA, oscB, gainA, gainB } = window.__ambience;
+      const { oscA, oscB } = window.__ambience;
       oscA.stop();
       oscB.stop();
-      gainA.disconnect();
-      gainB.disconnect();
       delete window.__ambience;
     }
 
@@ -200,7 +199,7 @@ function App() {
     }
 
     setAmbienceOn(false);
-    setStatus('Ambience stopped');
+    setStatus('Ambience off');
   };
 
   const toggleAmbience = () => {
@@ -217,29 +216,28 @@ function App() {
 
     setTimeout(() => {
       setIsRunning(false);
-      setStatus('Project finished');
-    }, 1200);
+      setStatus('Project built successfully');
+    }, 1100);
   };
 
   const handleStagePointerMove = (event) => {
     if (!selectedSprite) return;
-
     const bounds = stageRef.current?.getBoundingClientRect();
     if (!bounds) return;
 
-    const newX = Math.min(Math.max(event.clientX - bounds.left - selectedSprite.size / 2, 0), 760);
-    const newY = Math.min(Math.max(event.clientY - bounds.top - selectedSprite.size / 2, 0), 420);
+    const nextX = Math.min(Math.max(event.clientX - bounds.left - selectedSprite.size / 2, 0), 760);
+    const nextY = Math.min(Math.max(event.clientY - bounds.top - selectedSprite.size / 2, 0), 420);
 
-    updateSelectedSprite({ x: newX, y: newY });
+    updateSelectedSprite({ x: nextX, y: nextY });
   };
 
-  const exportFile = (name, content, type) => {
+  const exportFile = (filename, content, type) => {
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = name;
-    anchor.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
     URL.revokeObjectURL(url);
   };
 
@@ -248,97 +246,75 @@ function App() {
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${projectName}</title>
     <style>
-      body { font-family: Arial, sans-serif; background: #0b1020; color: white; }
-      #stage { position: relative; width: 960px; height: 560px; margin: 20px auto; border: 2px solid #4f46e5; border-radius: 16px; background: linear-gradient(180deg, #111827, #0b1120); }
-      .sprite { position: absolute; border-radius: 50%; display: grid; place-items: center; color: white; font-weight: 700; }
+      body { margin: 0; display: grid; place-items: center; min-height: 100vh; font-family: Arial, sans-serif; background: #070d1a; color: white; }
+      .stage { position: relative; width: 960px; height: 560px; border-radius: 18px; border: 2px solid rgba(99, 102, 241, 0.7); background: linear-gradient(180deg, #111827, #0b1120); }
+      .sprite { position: absolute; display: grid; place-items: center; border-radius: 50%; font-weight: 700; }
     </style>
   </head>
   <body>
-    <div id="stage">
+    <div class="stage">
       ${sprites
         .map(
           (sprite) =>
-            `<div class="sprite" style="left:${sprite.x}px; top:${sprite.y}px; width:${sprite.size}px; height:${sprite.size}px; background:${sprite.color};">${sprite.label}</div>`
+            `<div class="sprite" style="left:${sprite.x}px;top:${sprite.y}px;width:${sprite.size}px;height:${sprite.size}px;background:${sprite.color};">${sprite.label}</div>`
         )
         .join('')}
     </div>
-    <script>
-      const project = ${JSON.stringify({ projectName, sprites, jsCode }, null, 2)};
-      console.log('Launch project:', project.projectName);
-      // Runtime stub for exported HTML project.
-    </script>
   </body>
 </html>`;
 
     exportFile(`${projectName.replace(/\s+/g, '-').toLowerCase()}.html`, html, 'text/html');
-    setStatus('Exported HTML build');
+    setStatus('HTML export ready');
   };
 
   const exportHta = () => {
     const hta = `<!DOCTYPE html>
 <html>
-  <hta:application
-    id="InfiniteStudioPro"
-    applicationname="Infinite Studio Pro"
-    border="thin"
-    caption="yes"
-    contextmenu="no"
-    maximizebutton="yes"
-    minimizebutton="yes"
-    scroll="no"
-    showintaskbar="yes"
-    singleinstance="yes"
-  />
+  <hta:application id="InfiniteStudioPro" applicationname="Infinite Studio Pro" border="thin" caption="yes" contextmenu="no" maximizebutton="yes" minimizebutton="yes" scroll="no" showintaskbar="yes" singleinstance="yes" />
   <head>
     <meta charset="UTF-8" />
     <title>${projectName}</title>
     <style>
-      body { background: #0b1020; color: #dbeafe; font-family: Segoe UI, sans-serif; padding: 18px; }
-      .panel { max-width: 900px; margin: 0 auto; }
-      .stage { width: 100%; height: 420px; border-radius: 16px; border: 2px solid #4f46e5; background: linear-gradient(180deg, #111827, #0b1120); position: relative; }
-      .sprite { position: absolute; border-radius: 50%; display: grid; place-items: center; font-weight: 700; }
+      body { background: #070d1a; color: white; padding: 24px; font-family: Segoe UI, sans-serif; }
+      .stage { position: relative; height: 420px; border: 2px solid #6366f1; border-radius: 18px; background: linear-gradient(180deg, #111827, #0b1120); }
+      .sprite { position: absolute; display: grid; place-items: center; border-radius: 50%; font-weight: 700; }
     </style>
   </head>
   <body>
-    <div class="panel">
-      <h1>${projectName}</h1>
-      <div class="stage">
-        ${sprites
-          .map(
-            (sprite) =>
-              `<div class="sprite" style="left:${sprite.x}px; top:${sprite.y}px; width:${sprite.size}px; height:${sprite.size}px; background:${sprite.color};">${sprite.label}</div>`
-          )
-          .join('')}
-      </div>
+    <h1>${projectName}</h1>
+    <div class="stage">
+      ${sprites
+        .map(
+          (sprite) =>
+            `<div class="sprite" style="left:${sprite.x}px;top:${sprite.y}px;width:${sprite.size}px;height:${sprite.size}px;background:${sprite.color};">${sprite.label}</div>`
+        )
+        .join('')}
     </div>
   </body>
 </html>`;
 
     exportFile(`${projectName.replace(/\s+/g, '-').toLowerCase()}.hta`, hta, 'text/html');
-    setStatus('Exported HTA package');
+    setStatus('HTA export ready');
   };
 
   const exportApk = () => {
-    const apkProject = `<?xml version="1.0" encoding="utf-8"?>
+    const manifest = `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.infiniteengine.${projectName.replace(/\s+/g, '').toLowerCase()}">
-    <application
-        android:label="${projectName}"
-        android:icon="@mipmap/ic_launcher"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+    <application android:label="${projectName}" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         <activity android:name=".MainActivity" />
     </application>
 </manifest>
 
-# Android package generation stub for ${projectName}
-# This scaffold can be used with Android Studio or Capacitor to produce a real APK.
-# It is a starter export package for the project.
+# Advanced APK export scaffold for ${projectName}
+# Prepare in Android Studio or Capacitor for a real APK build.
 `;
 
-    exportFile(`${projectName.replace(/\s+/g, '-').toLowerCase()}.apk`, apkProject, 'application/octet-stream');
-    setStatus('Prepared APK package scaffold');
+    exportFile(`${projectName.replace(/\s+/g, '-').toLowerCase()}.apk`, manifest, 'application/octet-stream');
+    setStatus('APK scaffold export generated');
   };
 
   return (
@@ -347,35 +323,35 @@ function App() {
         <div className="branding-block">
           <div className="logo">∞</div>
           <div>
-            <p className="eyebrow">Game Design Engine</p>
+            <p className="eyebrow">Advanced Game Studio</p>
             <h1>Infinite Studio Pro</h1>
           </div>
         </div>
 
         <div className="top-actions">
           <input
-            type="text"
+            className="title-input"
             value={projectName}
             onChange={(event) => setProjectName(event.target.value)}
-            className="title-input"
           />
           <button className="primary" onClick={runProject}>
             {isRunning ? 'Running…' : 'Run Project'}
           </button>
-          <button className="secondary" onClick={() => setIs3D((val) => !val)}>
-            {is3D ? 'Exit 3D' : '3D Mode'}
+          <button className="secondary" onClick={() => setIs3D((value) => !value)}>
+            {is3D ? '2D View' : '3D View'}
           </button>
           <button className="secondary" onClick={toggleAmbience}>
-            {ambienceOn ? 'Mute Ambience' : 'Ambience'}
+            {ambienceOn ? 'Stop Ambience' : 'Ambience'}
           </button>
         </div>
       </header>
 
       <main className="workspace">
-        <aside className="panel left-panel">
+        <aside className="panel">
           <div className="panel-header">
             <h2>Blocks</h2>
           </div>
+
           <div className="block-list">
             {blocks.map((block) => (
               <button
@@ -393,6 +369,7 @@ function App() {
           <div className="panel-header compact">
             <h2>Palette</h2>
           </div>
+
           <div className="palette-grid">
             {['Events', 'Motion', 'Audio', 'Logic', 'Graphics'].map((category) => (
               <button key={category} className="palette-button" onClick={() => addBlock(category)}>
@@ -404,32 +381,37 @@ function App() {
 
         <section className="center-panel">
           <div className={`stage-wrapper ${is3D ? 'is-3d' : ''}`}>
-            <div
-              ref={stageRef}
-              className="stage"
-              onPointerMove={handleStagePointerMove}
-              onPointerLeave={() => setStatus('Scene ready')}
-            >
-              {sprites.map((sprite) => (
-                <div
-                  key={sprite.id}
-                  className={`sprite ${selectedSpriteId === sprite.id ? 'selected' : ''}`}
-                  style={{
-                    left: sprite.x,
-                    top: sprite.y,
-                    width: sprite.size,
-                    height: sprite.size,
-                    background: sprite.color,
-                    backgroundImage: sprite.image ? `url(${sprite.image})` : 'none',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                  onPointerDown={() => setSelectedSpriteId(sprite.id)}
-                >
-                  {!sprite.image && <span>{sprite.label}</span>}
-                </div>
-              ))}
-            </div>
+            {is3D ? (
+              <div className="three-shell">
+                <Scene3D sprites={sprites} />
+              </div>
+            ) : (
+              <div
+                ref={stageRef}
+                className="stage"
+                onPointerMove={handleStagePointerMove}
+              >
+                {sprites.map((sprite) => (
+                  <div
+                    key={sprite.id}
+                    className={`sprite ${selectedSpriteId === sprite.id ? 'selected' : ''}`}
+                    style={{
+                      left: sprite.x,
+                      top: sprite.y,
+                      width: sprite.size,
+                      height: sprite.size,
+                      background: sprite.color,
+                      backgroundImage: sprite.image ? `url(${sprite.image})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                    onPointerDown={() => setSelectedSpriteId(sprite.id)}
+                  >
+                    {!sprite.image && <span>{sprite.label}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="stage-toolbar">
               <button onClick={addSprite}>+ Add Sprite</button>
@@ -448,7 +430,7 @@ function App() {
           </div>
         </section>
 
-        <aside className="panel right-panel">
+        <aside className="panel">
           <div className="panel-header">
             <h2>Inspector</h2>
           </div>
@@ -462,6 +444,7 @@ function App() {
                   onChange={(event) => updateSelectedSprite({ name: event.target.value })}
                 />
               </label>
+
               <label>
                 <span>Size</span>
                 <input
@@ -472,16 +455,18 @@ function App() {
                   onChange={(event) => updateSelectedSprite({ size: Number(event.target.value) })}
                 />
               </label>
+
               <label>
-                <span>X Position</span>
+                <span>X</span>
                 <input
                   type="number"
                   value={selectedSprite.x}
                   onChange={(event) => updateSelectedSprite({ x: Number(event.target.value) })}
                 />
               </label>
+
               <label>
-                <span>Y Position</span>
+                <span>Y</span>
                 <input
                   type="number"
                   value={selectedSprite.y}
